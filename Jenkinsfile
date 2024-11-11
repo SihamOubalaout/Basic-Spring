@@ -13,30 +13,15 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                // Specify the branch 'master'
-                git branch: 'master', url: 'https://github.com/SihamOubalaout/Basic-Spring.git'
+                // Specify the branch and repository for the Spring Boot app
+                git branch: 'main', url: 'https://github.com/SihamOubalaout/Basic-Spring.git'
             }
         }
 
         stage('Build') {
             steps {
-                // Run Maven build to create the JAR file for Spring Boot app
-                bat 'mvn clean package -DskipTests'  // Build the application and skip tests for faster builds
-            }
-        }
-
-        stage('Build and Run Services') {
-            steps {
-                script {
-                    // Check if the container already exists
-                    def containerExists = bat(returnStatus: true, script: 'docker ps -a -q -f name=jee-app-tomcat')
-                    if (containerExists == 0) {
-                        echo "Container 'jee-app-tomcat' already exists, skipping creation."
-                    } else {
-                        echo "Creating and running the 'jee-app-tomcat' container."
-                        bat 'docker-compose up -d --build'  // Build and run MySQL and app containers
-                    }
-                }
+                // Build the Spring Boot application using Maven (skip tests for faster builds)
+                bat 'mvn clean package -DskipTests'
             }
         }
 
@@ -47,8 +32,8 @@ pipeline {
                     withSonarQubeEnv('SonarQube') {
                         bat """
                         ${scannerHome}\\bin\\sonar-scanner.bat ^
-                        -Dsonar.projectKey=SpringBootJPAApp ^
-                        -Dsonar.host.url=https://01a0-154-144-237-193.ngrok-free.app ^
+                        -Dsonar.projectKey=spring ^
+                        -Dsonar.host.url=https://4aa7-196-75-66-2.ngrok-free.app ^
                         -Dsonar.login=sqp_723375720a1c928bb81609b6f070c12e5622aaf3 ^
                         -Dsonar.sources=src ^
                         -Dsonar.exclusions="**/node_modules/**" ^
@@ -67,25 +52,17 @@ pipeline {
             }
         }
 
-        stage('Teardown') {
-            steps {
-                script {
-                    bat 'docker-compose down'  // Stop and remove containers
-                }
-            }
-        }
-
         stage('Build Docker Image') {
             steps {
                 script {
                     // Check if Docker image exists
-                    def imageExists = bat(returnStatus: true, script: 'docker images -q jee-app-tomcat')
+                    def imageExists = bat(returnStatus: true, script: 'docker images -q spring-boot-app')
                     if (imageExists == 0) {
-                        echo "Docker image 'jee-app-tomcat' already exists, skipping build."
+                        echo "Docker image 'spring-boot-app' already exists, skipping build."
                     } else {
-                        echo "Building Docker image 'jee-app-tomcat'."
-                        // Build Docker image for the Spring Boot app
-                        docker.build('jee-app-tomcat', '.')
+                        echo "Building Docker image 'spring-boot-app'."
+                        // Build the Docker image for Spring Boot application
+                        docker.build('spring-boot-app', '.')
                     }
                 }
             }
@@ -94,14 +71,9 @@ pipeline {
         stage('Run Docker Container') {
             steps {
                 script {
-                    // Check if the container is running
-                    def containerRunning = bat(returnStatus: true, script: 'docker ps -q -f name=jee-app-tomcat')
-                    if (containerRunning == 0) {
-                        echo "Container 'jee-app-tomcat' already running."
-                    } else {
-                        echo "Running Docker container 'jee-app-tomcat'."
-                        docker.image('jee-app-tomcat').run('-p 9091:9090')
-                    }
+                    // Run the Docker container for Spring Boot app
+                    echo "Running Docker container 'spring-boot-app'."
+                    docker.image('spring-boot-app').run('-p 8080:8080')
                 }
             }
         }
@@ -110,8 +82,17 @@ pipeline {
             steps {
                 script {
                     // Assign the custom URL for Spring Boot application
-                    def customUrl = "http://localhost:8081/PainCare/acceuil.jsp"
+                    def customUrl = "http://localhost:8000"
                     echo "Deployment complete. Application should be running at ${customUrl}"
+                }
+            }
+        }
+
+        stage('Teardown') {
+            steps {
+                script {
+                    // Stop and remove Docker containers
+                    bat 'docker-compose down'
                 }
             }
         }
@@ -119,7 +100,7 @@ pipeline {
 
     post {
         always {
-            // Clean up the workspace after build
+            // Clean up the workspace after the build is complete
             cleanWs()
         }
     }
