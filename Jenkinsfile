@@ -1,43 +1,36 @@
+
 pipeline {
     agent any
-
-    environment {
+ environment {
         // Ensure Docker and Maven paths are properly set
         PATH = "C:\\WINDOWS\\SYSTEM32;C:\\Program Files\\Docker\\Docker\\resources\\bin"
     }
-
-    tools {
-        maven 'Maven' // Ensure Maven is installed in Jenkins
-    }
-
     stages {
         stage('Checkout') {
             steps {
-                // Specify the branch and repository for the Spring Boot app
-                git branch: 'main', url: 'https://github.com/SihamOubalaout/Basic-Spring.git'
+                git url: 'https://github.com/SihamOubalaout/Basic-Spring.git', branch: 'main'
             }
         }
 
-        stage('Build') {
+        stage('Compile') {
             steps {
-                // Build the Spring Boot application using Maven (skip tests for faster builds)
-                bat 'mvn clean package -DskipTests'
+                // Assurez-vous que Maven est installé et configuré dans Jenkins
+                bat 'mvn clean compile'
             }
         }
 
         stage('SonarQube Analysis') {
             steps {
                 script {
-                    def scannerHome = tool 'SonarScanner'
+                    def scannerHome = tool 'sonar-scanner'
                     withSonarQubeEnv('SonarQube') {
                         bat """
-                        ${scannerHome}\\bin\\sonar-scanner.bat ^
-                        -Dsonar.projectKey=spring ^
-                        -Dsonar.host.url=https://1504-196-75-46-64.ngrok-free.app ^
-                        -Dsonar.login=sqp_9fac781ea4ea647945de8ac837695631933c2a1a ^
-                        -Dsonar.sources=src ^
-                        -Dsonar.exclusions="**/node_modules/**" ^
-                        -Dsonar.java.binaries=target/classes
+                            ${scannerHome}\\bin\\sonar-scanner.bat ^
+                            -Dsonar.projectKey=stage ^
+                           -Dsonar.host.url=https://1504-196-75-46-64.ngrok-free.app ^
+                           -Dsonar.login=sqp_9fac781ea4ea647945de8ac837695631933c2a1a ^
+                            -Dsonar.sources=./src ^
+                            -Dsonar.java.binaries=./target/classes
                         """
                     }
                 }
@@ -46,62 +39,12 @@ pipeline {
 
         stage('Quality Gate') {
             steps {
-                timeout(time: 30, unit: 'MINUTES') {
+                timeout(time: 5, unit: 'MINUTES') {
                     waitForQualityGate abortPipeline: true
                 }
             }
         }
-
-        stage('Build Docker Image') {
-            steps {
-                script {
-                    // Check if Docker image exists
-                    def imageExists = bat(returnStatus: true, script: 'docker images -q spring-boot-app')
-                    if (imageExists == 0) {
-                        echo "Docker image 'spring-boot-app' already exists, skipping build."
-                    } else {
-                        echo "Building Docker image 'spring-boot-app'."
-                        // Build the Docker image for Spring Boot application
-                        docker.build('spring-boot-app', '.')
-                    }
-                }
-            }
-        }
-
-        stage('Run Docker Container') {
-            steps {
-                script {
-                    // Run the Docker container for Spring Boot app
-                    echo "Running Docker container 'spring-boot-app'."
-                    docker.image('spring-boot-app').run('-p 8080:8080')
-                }
-            }
-        }
-
-        stage('Deploy') {
-            steps {
-                script {
-                    // Assign the custom URL for Spring Boot application
-                    def customUrl = "http://localhost:8000"
-                    echo "Deployment complete. Application should be running at ${customUrl}"
-                }
-            }
-        }
-
-        stage('Teardown') {
-            steps {
-                script {
-                    // Stop and remove Docker containers
-                    bat 'docker-compose down'
-                }
-            }
-        }
-    }
-
-    post {
-        always {
-            // Clean up the workspace after the build is complete
-            cleanWs()
-        }
     }
 }
+
+
