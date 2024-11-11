@@ -9,7 +9,7 @@ tools {
     stages {
         stage('Checkout') {
             steps {
-                git url: 'https://github.com/ChakraHs/Basic-Spring.git', branch: 'main'
+                git url: 'https://github.com/SihamOubalaout/Basic-Spring.git', branch: 'main'
             }
         }
 
