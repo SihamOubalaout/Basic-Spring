@@ -30,7 +30,7 @@ pipeline {
                         bat """
                             ${scannerHome}\\bin\\sonar-scanner.bat ^
                             -Dsonar.projectKey=spring ^
-                           -Dsonar.host.url=https://6e48-105-73-96-62.ngrok-free.app ^
+                           -Dsonar.host.url=http://localhost:9000 ^
                            -Dsonar.login=sqp_9fac781ea4ea647945de8ac837695631933c2a1a ^
                             -Dsonar.sources=./src ^
                             -Dsonar.java.binaries=./target/classes
