@@ -5,6 +5,9 @@ pipeline {
         // Ensure Docker and Maven paths are properly set
         PATH = "C:\\WINDOWS\\SYSTEM32;C:\\Program Files\\Docker\\Docker\\resources\\bin"
     }
+     tools {
+        maven 'Maven' // Ensure Maven is installed in Jenkins
+    }
     stages {
         stage('Checkout') {
             steps {
